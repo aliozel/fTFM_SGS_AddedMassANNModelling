@@ -1,0 +1,147 @@
+import numpy as np
+#import OpenMORe.model_order_reduction as model_order_reduction
+#from OpenMORe.utilities import *
+from sklearn.model_selection import train_test_split
+from tensorflow.python.keras.models import Sequential
+#_AO from tensorflow.python.keras.layers import Dense, BatchNormalization, Dropout, Activation
+from tensorflow.keras.layers import Dense, BatchNormalization, Dropout, Activation
+import os
+import os.path
+from tensorflow.python.keras.callbacks import EarlyStopping
+from tensorflow.python.keras.callbacks import ModelCheckpoint
+from tensorflow.python.keras.layers import LeakyReLU
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras import backend as K
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import InputLayer, Input
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.callbacks import TensorBoard
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.models import load_model
+from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.models import model_from_json
+
+import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
+import matplotlib.colors as colors
+import matplotlib as mpl
+import matplotlib
+
+import skopt
+from skopt import gp_minimize, forest_minimize
+from skopt.space import Real, Categorical, Integer
+from skopt.plots import plot_convergence
+from skopt.plots import plot_objective, plot_evaluations
+from skopt.plots import plot_objective
+from skopt.utils import use_named_args
+
+from sklearn.model_selection import train_test_split
+
+#AO import model_order_reduction
+import OpenMORe.model_order_reduction as model_order_reduction
+from OpenMORe.utilities import *
+#from utilities import *
+
+import tensorflow as tf
+
+from tensorflow.keras.models import load_model
+
+import pathlib
+
+'''
+The aim of this script is to create an artificial input matrix with fixed
+properties (Reynolds number and Phi) to be fed to the trained ANN.
+The output vector produced by the ANN will be then saved as a txt file.
+Afterwards, the output vector will be further processed in Matlab to assess the
+results.
+'''
+
+# Range of scaled slip velocities and solid volume fraction
+uVec = [0.1, 0.2, 0.3, 0.4]
+phis = [0.05, 0.1, 0.15, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9]
+
+# We initialize the prediction vector as an empty one:
+predictions = [None] * len(uVec)
+
+# We load the training matrix
+Xa = np.loadtxt("./Jiang3CasesDataset/0.1Percent/sampleX.txt")
+Xp = np.loadtxt("./Jiang3CasesDataset/0.1Percent/sampleXp.txt")
+Xpr = Xp.reshape(Xp.shape[0],1)
+X = np.concatenate((Xa,Xpr),axis=1)
+
+# The particles' Re is fixed, depending on the case we are interested in:
+ReX = [3.12, 6.3, 14.77]
+# This is the scaled filter size (inverse of):
+FilX = [0.014, 0.0544, 0.091, 0.28, 1.19]
+
+# Load model
+bestModelFile='./codeANNBayesian/FILENAMECHAR/bestModel.hdf5'
+model = load_model(bestModelFile)
+
+# We iterate for each phi and each slip velocity:
+for kk in range(len(ReX)):
+    for jj in range(len(FilX)):
+        # We iterate for each phi and each slip velocity:
+        for i in range(len(phis)):
+            for ii in range(len(uVec)):
+
+                # The particles' Re, depending on the case we are interested in:
+                Re = ReX[kk]
+                # This is the filter size (inverse of):
+                Fil = FilX[jj]               
+                # The value of phi we are gonna consider is one of the values of the vector we have created earlier:
+                phi = phis[i]
+                # Same for the slip velocity to be considered at each iteration:
+                uslip = uVec[ii]
+                # The following is the size of the artificial matrix (Y) we want to create
+                #sizeY = 100
+                sizeY = 1000
+                    
+                # Create folder
+                foldername = 'ReX' + str(Re) + '_FilX' + str(Fil)
+                pathlib.Path(foldername).mkdir(parents=True, exist_ok=True) 
+
+                # initialize the artificial matrix as an empty one
+                Y = np.empty((sizeY,5), dtype=float)
+
+                # This is to check at each iteration of the nested loop which are the
+                # values of Re and filter that we are considering"
+                print("Ok, shape Y: {}".format(Y.shape))
+                print("Considered Re: {}".format(ReX))
+                print("Considered FiltX: {}".format(FilX))
+
+                # This is the column that we use for the pressure gradient. Its values will
+                # vary between -0.6 and 0
+                block = np.linspace(-0.6,0,Y.shape[0])
+
+                # Now we assemble the matrix considering the same order of the input data X:
+                # First column is particles Re (constant)
+                Y[:,0] = Re
+                # Second column is the filter size (constant)
+                Y[:,1] = Fil
+                # Third column is the phi (constant)
+                Y[:,2] = phi
+                # Fourth column is the pressure gradient (varying)
+                Y[:,3] = block
+                # Fift column is the slip velocity (constant)
+                Y[:,4] = uslip
+
+                # Before feeding the artificial data to the network, we have to preprocess
+                # them with the same centering and scaling factors as the data we used to
+                # train it.
+
+                # Let's compute the centering factor, mu. It's the mean of each column so it'll be a vec (1x5)
+                mu = center(X, "mean")
+                # Let's compute the scaling factor, sigma. It's the std deviation of each column --> a vec (1x5)
+                sigma = scale(X, "auto")
+
+                # Let's center and scale the matrix. We add 1E-16 to avoid dividing by 0.
+                # At the end of this step, we get the preprocessed artificial matrix Ytilde
+                Y_tilde = (Y-mu)/(sigma +1E-16)
+
+                # We compute the prediction for this particular case we are simulating
+                predictions[ii] = model.predict([Y_tilde[:,[0,1,2,4]],Y_tilde[:,[0,1,2,4]],Y_tilde[:,3]])
+
+                # We save the artificial input matrix we have created Y in a txt
+                np.savetxt(foldername+'/inputPrediction_PHI=' + str(phi) + '_Uslip=' + str(uslip) + '.txt', np.c_[Y[:,3], predictions[ii]])
+

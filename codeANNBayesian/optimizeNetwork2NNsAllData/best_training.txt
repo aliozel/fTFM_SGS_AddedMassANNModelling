@@ -1,0 +1,4 @@
+The optimal number of neurons is equal to: 204 
+The optimal number of layers is equal to: 5 
+The optimal acquisition function is: relu 
+The optimal LR is equal to: 0.0002962846277292151 

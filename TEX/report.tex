@@ -1,0 +1,288 @@
+\documentclass[11pt]{article}
+
+\usepackage{graphicx}
+%\usepackage{epstopdf,epsfig}
+\usepackage{newtxtext}
+\usepackage{newtxmath}
+\usepackage{natbib}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks = true,
+    urlcolor   = blue,
+    citecolor  = black,
+}
+\newtheorem{lemma}{Lemma}
+\newtheorem{corollary}{Corollary}
+\newcommand{\RomanNumeralCaps}[1]
+\linenumbers
+ \usepackage{listings}
+\usepackage{color} %red, green, blue, yellow, cyan, magenta, black, white
+
+\usepackage{caption}
+\usepackage{subcaption}
+
+\usepackage{xcolor}
+
+\usepackage{soul}
+% {\MakeUppercase{\romannumeral #1}}
+
+\usepackage{enumitem}
+\usepackage{siunitx}
+\usepackage{psfrag}
+\usepackage{comment}
+\usepackage{relsize}
+\usepackage[margin=2cm]{geometry}
+
+% AO: New commands
+\newcommand{\grav}{\mathbf{g}}
+\newcommand{\uSlipz}{\tilde{u}_{slip,z}}
+\newcommand{\uSlipStar}{u_{slip,z}^{*}}
+\newcommand{\Rep}{\text{Re}_p}
+\newcommand{\Stp}{\text{St}_p}
+\newcommand{\Frp}{\text{Fr}_p}
+\newcommand{\deltas}{(\Delta^{*})^{-1}}
+\newcommand{\gradPgStar}{\nabla p^{*}|_z}
+\newcommand{\YANN}{Y|_{\text{ANN}}}
+
+\title{Subgrid-Scale Modeling of Added Mass for Filtered Eulerian-Eulerian Modeling of Fluidized Beds through Data-Driven Framework}
+
+\author{
+Giuseppe D'Alessio,
+Ali Ozel,
+Sankaran Sundaresan,
+Michael E. Mueller
+}
+
+\begin{document}
+\maketitle
+
+\newpage
+
+\begin{enumerate}[label=(\roman*), labelsep=.5em, leftmargin=2\parindent]
+    \item the particle Reynolds number, 
+        \begin{equation}\label{Rep}
+            \Rep = \frac{\rho_{g}d_{p}u_{t}}{\mu_g},
+        \end{equation}    
+    \item the inverse scaled filter size,
+        \begin{equation}\label{invDelta}        
+            (\Delta^{*})^{-1} = \left( \frac{\Delta_{f}}{\Frp^{1/3}d_{p}} \right)^{-1},
+        \end{equation} 
+        with the particle Froude number, $\mathlarger{\Frp = \frac{u_{t}^{2}}{d_{p}||\grav||}}$\label{Frp},
+    \item the scaled particle volume fraction, 
+        \begin{equation}\label{phiStar}   
+            \phi^{*} = \frac{\bar{\phi}_{s}}{\phi_{s,max}},
+        \end{equation}    
+    \item the vertical component of the scaled gas pressure gradient, 
+        \begin{equation}\label{gradPhStar}           
+            \gradPgStar = \frac{\nabla \bar{p}|_{z}}{\rho_{s}||\grav||},
+        \end{equation}    
+    \item the vertical component of the scaled slip velocity, 
+        \begin{equation}\label{uSlipStar}      
+            \uSlipStar = \frac{\uSlipz}{u_{t}},
+        \end{equation}    
+\end{enumerate} 
+and the vertical component of the scaled drift flux, 
+        \begin{equation}\label{Y}      
+            Y = \frac{\phi^{*}\tilde{v}_{d,z}}{u_t},
+        \end{equation}  
+as the output.
+
+\begin{table}
+\centering
+\begin{tabular}{cccccccc}
+Case & $\rho_{g}$ [\si{\kg\per\cubic\m}] & $\rho_{s}$ [\si{\kg\per\cubic\m}] & $\mu_{g}$ $\times\num{e-5}$ [\si{\pascal\s}] & $d_{p}$ [\si{\micro\m}] & $u_{t}$ [\si{\m\per\s}] & $\Rep$ [-] & $St_{p}$ [-] \\\hline
+SG1 & 1.3 & 1600 & 2.89 & 145 & 0.48 & 3.12 & 213 \\
+SG2 & 2.28 & 1600 & 2.5 & 145 & 0.48 & 6.30 & 246 \\
+SG3 & 1.3 & 1500 & 1.84 & 210 & 1.00 & 14.77 & 950 \\
+\end{tabular}
+\caption{Flow configurations spanning a range of particle Reynolds and Stokes numbers used to assess the performance of the predictive framework developed in this work.}
+\label{tab:test_cases}
+\end{table}
+
+\newpage
+\begin{figure}
+    \centering
+    \psfrag{x1}[c]{$\gradPgStar$}
+    \psfrag{y1}[c]{$\YANN$}
+    \psfrag{uslip01}[][c][0.75]{\hspace{-0.5cm}$\uSlipStar=0.1$}
+    \psfrag{uslip02}[][c][0.75]{\hspace{-0.5cm}$\uSlipStar=0.2$}
+    \psfrag{uslip03}[][c][0.75]{\hspace{-0.5cm}$\uSlipStar=0.3$}
+    \psfrag{uslip04}[][c][0.75]{\hspace{-0.5cm}$\uSlipStar=0.4$}
+    \psfrag{u01}[][c][0.75]{\hspace{-3cm}$\uSlipStar=0.1$}
+    \psfrag{u02}[][c][0.75]{\hspace{-3cm}$\uSlipStar=0.2$}
+    \psfrag{u03}[][c][0.75]{\hspace{-3cm}$\uSlipStar=0.3$}
+    \psfrag{u04}[][c][0.75]{\hspace{-3cm}$\uSlipStar=0.4$}  
+    \psfrag{uslip01Linear}[][c][0.75]{\hspace{-0.75cm}$\uSlipStar=0.1$-Linear}
+    \psfrag{uslip02Linear}[][c][0.75]{\hspace{-0.75cm}$\uSlipStar=0.2$-Linear}
+    \psfrag{uslip03Linear}[][c][0.75]{\hspace{-0.75cm}$\uSlipStar=0.3$-Linear}
+    \psfrag{uslip04Linear}[][c][0.75]{\hspace{-0.75cm}$\uSlipStar=0.4$-Linear}      
+    \hspace{-0.6cm}\includegraphics[width=0.375\textwidth,angle=-90]{../FIGURES/gradPressPhiReX6.3_FilX0.014Linear.eps}         
+    \caption{Two-branch ANN predictions of the scaled drift flux, $\YANN$, with respect to the vertical component of the scaled gas pressure gradient, $\gradPgStar$\eqref{gradPhStar}, (one of the input variables): The results for the scaled slip velocity $\uSlipStar \in [0.1, 0.4]$ and $\phi^{*} = 0.7$ are presented as solid lines. Their approximation through the linear model is is shown as dashed lines. Flow configuration is SG2 (Table~\ref{tab:test_cases}). The inverse scaled filter size, $(\Delta^{*})^{-1}=0.28$.} \label{fig:ANNdependence}
+\end{figure}
+
+\newpage
+\begin{figure}
+    \centering
+    \psfrag{x1}[c]{$\phi^*$}
+    \psfrag{y1}[c]{$\left(\bar{\phi}_s-\frac{\beta u_t \phi_{s,max}}{\rho_s\bar{\phi}_s||\mathbf{g}||}m\right)/\bar{\phi}_s$}
+    \psfrag{Delta01}[][c][0.75]{\hspace{-0.65cm}$\deltas=0.014$}
+    \psfrag{Delta02}[][c][0.75]{\hspace{-0.65cm}$\deltas=0.054$}
+    \psfrag{Delta03}[][c][0.75]{\hspace{-0.65cm}$\deltas=0.091$}
+    \psfrag{Delta04}[][c][0.75]{\hspace{-0.8cm}$\deltas=0.28$}
+    \psfrag{Delta05}[][c][0.75]{\hspace{-0.8cm}$\deltas=1.19$}    
+    \psfrag{phi01}[][c][0.75]{\hspace{-0.15cm}$\phi^{*}=0.05$}
+    \psfrag{phi02}[][c][0.75]
+    {\hspace{-0.3cm}$\phi^{*}=0.3$}
+    \psfrag{phi03}[][c][0.75]
+    {\hspace{-0.3cm}$\phi^{*}=0.6$}
+    \psfrag{phi04}[][c][0.75]
+    {\hspace{-0.3cm}$\phi^{*}=0.9$}
+    \psfrag{Ustar01}[][c][0.75]
+    {\hspace{-0.65cm}$\uSlipStar=0.1$}
+    \psfrag{Ustar02}[][c][0.75]{\hspace{-0.65cm}$\uSlipStar=0.2$}
+    \psfrag{Ustar03}[][c][0.75]{\hspace{-0.65cm}$\uSlipStar=0.3$}
+    \psfrag{Ustar04}[][c][0.75]{\hspace{-0.65cm}$\uSlipStar=0.4$}   
+    \begin{tabular}{cc}
+        a) & b) \\
+        \hspace{-0.25cm}\includegraphics[width=0.375\textwidth,angle=-90]{../FIGURES/factorPhiSReX6.3UstarX0.1FilXs.eps} &            \hspace{-0.6cm}\includegraphics[width=0.375\textwidth,angle=-90]{../FIGURES/factorPhiSReX6.3UstarXsFilX0.014.eps}   
+    \end{tabular}    
+    \caption{Ratio between the multiplicative factor of the filtered gas pressure gradient term, $\left(\bar{\phi}_s-\frac{\beta u_t \phi_{s,max}}{\rho_s\bar{\phi}_s||\mathbf{g}||}m\right)$ in \eqref{eq:filt_momentSolid_corrected}, and the multiplicative factor without the subgrid contribution, $\bar{\phi}_{s}$, with respect to the scaled solid volume fraction a) at various inverse scaled filter sizes: from fine, $\deltas = 1.19$, to extra-large, $\deltas = 0.014$, and $\uSlipStar=0.1$, and b) at $\deltas = 0.014$ and various scaled slip velocities, $\uSlipStar=0.1, 0.2, 0,3$ and 0.4. Flow configuration is SG2 ($\Rep=6.3$, Table~\ref{tab:test_cases}).}
+    \label{fig:compareDB_vs_phi_differentFilter}
+\end{figure}
+
+\newpage
+\begin{figure}
+    \centering
+    \psfrag{x1}[c]{$\phi^*$}
+    \psfrag{y1}[c]{$\left(\bar{\phi}_s-\frac{\beta u_t \phi_{s,max}}{\rho_s\bar{\phi}_s||\mathbf{g}||}m\right)/\bar{\phi}_s$}
+    \psfrag{Rep01}[][c][0.75]
+    {\hspace{-2cm}$\Rep=3.12$, $\uSlipStar=0.1$}
+    \psfrag{Rep02}[][c][0.75]
+    {\hspace{-1.9cm}$\Rep=6.3$, $\uSlipStar=0.1$}
+    \psfrag{Rep03}[][c][0.75]
+    {\hspace{-2.2cm}$\Rep=14.77$, $\uSlipStar=0.1$} 
+    \psfrag{Rep01Phi01}[][c][0.75]{\hspace{0.45cm}$\Rep=3.12$, $\phi^{*}=0.3$}
+    \psfrag{Rep02Phi01}[][c][0.75]{\hspace{0.3cm}$\Rep=6.3$, $\phi^{*}=0.3$}
+    \psfrag{Rep03Phi01}[][c][0.75]{\hspace{0.6cm}$\Rep=14.77$, $\phi^{*}=0.3$}  
+    \psfrag{Rep01Phi02}[][c][0.75]{\hspace{0.45cm}$\Rep=3.12$, $\phi^{*}=0.6$}
+    \psfrag{Rep02Phi02}[][c][0.75]{\hspace{0.3cm}$\Rep=6.3$, $\phi^{*}=0.6$}
+    \psfrag{Rep03Phi02}[][c][0.75]{\hspace{0.6cm}$\Rep=14.77$, $\phi^{*}=0.6$}      \psfrag{Rep01Ustar02}[][c][0.75]
+    {\hspace{-1cm}$\Rep=3.12$, $\uSlipStar=0.2$}
+    \psfrag{Rep01Ustar04}[][c][0.75]
+    {\hspace{-1cm}$\Rep=3.12$, $\uSlipStar=0.4$}
+    \psfrag{Rep02Ustar02}[][c][0.75]
+    {\hspace{-0.9cm}$\Rep=6.3$, $\uSlipStar=0.2$}  
+    \psfrag{Rep02Ustar04}[][c][0.75]
+    {\hspace{-0.9cm}$\Rep=6.3$, $\uSlipStar=0.4$}
+    \psfrag{Rep03Ustar02}[][c][0.75]
+    {\hspace{-1.2cm}$\Rep=14.77$, $\uSlipStar=0.2$}
+    \psfrag{Rep03Ustar04}[][c][0.75]
+    {\hspace{-1.2cm}$\Rep=14.77$, $\uSlipStar=0.4$}  
+    \begin{tabular}{cc}
+        a) & b) \\\hspace{-0.25cm}\includegraphics[width=0.375\textwidth,angle=-90]{../FIGURES/factorPhiSReXsUstarX0.1FilX0.014.eps} &        \hspace{-0.6cm}\includegraphics[width=0.375\textwidth,angle=-90]{../FIGURES/factorPhiSReXsUstarXsFilX0.014.eps}         
+    \end{tabular}    
+    \caption{Ratio between the multiplicative factor of the filtered gas pressure gradient term, $\left(\bar{\phi}_{s} - \frac{\phi_{s,max} u_{t} \beta }{\bar{\phi}_{s} \rho_{s}||\grav||} m \right)$ in \eqref{eq:filt_momentSolid_corrected}, and the multiplicative factor without the sub-grid contribution, $\bar{\phi}_{s}$, with respect to the scaled solid volume fraction a) at $\uSlipStar=0.1$, and b) $\uSlipStar=0.2$ and 0.4, at $\deltas = 0.014$ for flow configurations of SG1 ($\Rep=3.12$), SG2 ($\Rep=6.3$), and SG3 ($\Rep=14.77$). See Table~\ref{tab:test_cases} for flow configurations.}
+    \label{fig:compareDB_vs_phi}
+\end{figure}  
+
+\newpage
+\begin{figure}
+    \centering 
+    \psfrag{x1}[c]{$\phi^*$}
+    \psfrag{y1}[c]{$\left(\bar{\phi}_s-\frac{\beta u_t \phi_{s,max}}{\rho_s\bar{\phi}_s||\mathbf{g}||}m\right)$}
+    \psfrag{Wilde}[][c][0.75]{\hspace{-1.5cm}\cite{de2007generalized}, $\bar{m}_{s}$}
+    \psfrag{Delta01}[][c][0.75]
+    {\hspace{-0.55cm}$\deltas=0.014$}
+    \psfrag{Delta02}[][c][0.75]
+    {\hspace{-0.55cm}$\deltas=0.054$}
+    \psfrag{Delta03}[][c][0.75]
+    {\hspace{-0.55cm}$\deltas=0.091$}
+    \psfrag{Delta04}[][c][0.75]
+    {\hspace{-0.55cm}$\deltas=0.28$}
+    \psfrag{Delta05}[][c][0.75]
+    {\hspace{-0.55cm}$\deltas=1.19$}    
+    \psfrag{Ustar01}[][c][0.75]
+    {\hspace{-0.3cm}$\uSlipStar=0.1$}
+    \psfrag{Ustar02}[][c][0.75]
+    {\hspace{-0.3cm}$\uSlipStar=0.2$}
+    \psfrag{Ustar03}[][c][0.75]
+    {\hspace{-0.3cm}$\uSlipStar=0.3$}
+    \psfrag{Ustar04}[][c][0.75]
+    {\hspace{-0.3cm}$\uSlipStar=0.4$}       
+    \begin{tabular}{cc}
+        a) & b) \\
+        \hspace{-0.25cm}\includegraphics[width=0.375\textwidth,angle=-90]{../FIGURES/factorReX6.3UstarX0.1FilXs.eps} &        \hspace{-0.6cm}\includegraphics[width=0.375\textwidth,angle=-90]{../FIGURES/factorReX6.3UstarXsFilX0.014.eps}   
+    \end{tabular}    
+    \caption{Multiplicative factor of the filtered gas pressure gradient term, $\left(\bar{\phi}_s-\frac{\beta u_t \phi_{s,max}}{\rho_s\bar{\phi}_s||\mathbf{g}||}m\right)$ in \eqref{eq:filt_momentSolid_corrected} with respect to the scaled solid volume fraction a) at various inverse scaled filter sizes: from fine, $\deltas = 1.19$, to extra-large, $\deltas = 0.014$, and $\uSlipStar=0.1$, and b) at various scaled slip velocities $\uSlipStar = 0.1, 0.2, 0.3$ and $0.4$, and $\deltas = 0.014$. Flow configuration is SG2 (Table~\ref{tab:test_cases}). $\bar{m}_{s}$ is the mass fraction of the solid phase.}
+    \label{fig:compareDB_vs_DW_paramFilter}
+\end{figure}
+
+\newpage
+\begin{figure}
+    \centering
+    \psfrag{x1}[c]{$\phi^*$}
+    \psfrag{y1}[c]{$\left(\bar{\phi}_s-\frac{\beta u_t \phi_{s,max}}{\rho_s\bar{\phi}_s||\mathbf{g}||}m\right)$}
+    \psfrag{Wilde}[][c][0.75]{\hspace{-1.5cm}\cite{de2007generalized}, $\bar{m}_{s}$}
+    \psfrag{Rep01}[][c][0.75]
+    {\hspace{-2cm}$\Rep=3.12$, $\uSlipStar=0.1$}
+    \psfrag{Rep02}[][c][0.75]
+    {\hspace{-1.9cm}$\Rep=6.3$, $\uSlipStar=0.1$}
+    \psfrag{Rep03}[][c][0.75]
+    {\hspace{-2.2cm}$\Rep=14.77$, $\uSlipStar=0.1$} 
+    \psfrag{Rep01Phi01}[][c][0.75]{\hspace{0.65cm}$\Rep=3.12$, $\phi^{*}=0.3$}
+    \psfrag{Rep02Phi01}[][c][0.75]{\hspace{0.5cm}$\Rep=6.3$, $\phi^{*}=0.3$}
+    \psfrag{Rep03Phi01}[][c][0.75]{\hspace{0.8cm}$\Rep=14.77$, $\phi^{*}=0.3$}  
+    \psfrag{Rep01Phi02}[][c][0.75]{\hspace{0.65cm}$\Rep=3.12$, $\phi^{*}=0.6$}
+    \psfrag{Rep02Phi02}[][c][0.75]{\hspace{0.5cm}$\Rep=6.3$, $\phi^{*}=0.6$}
+    \psfrag{Rep03Phi02}[][c][0.75]{\hspace{0.8cm}$\Rep=14.77$, $\phi^{*}=0.6$}
+    \psfrag{Rep01Ustar02}[][c][0.75]
+    {\hspace{-1cm}$\Rep=3.12$, $\uSlipStar=0.2$}
+    \psfrag{Rep01Ustar04}[][c][0.75]
+    {\hspace{-1cm}$\Rep=3.12$, $\uSlipStar=0.4$}
+    \psfrag{Rep02Ustar02}[][c][0.75]
+    {\hspace{-0.9cm}$\Rep=6.3$, $\uSlipStar=0.2$}  
+    \psfrag{Rep02Ustar04}[][c][0.75]
+    {\hspace{-0.9cm}$\Rep=6.3$, $\uSlipStar=0.4$}
+    \psfrag{Rep03Ustar02}[][c][0.75]
+    {\hspace{-1.2cm}$\Rep=14.77$, $\uSlipStar=0.2$}
+    \psfrag{Rep03Ustar04}[][c][0.75]
+    {\hspace{-1.2cm}$\Rep=14.77$, $\uSlipStar=0.4$}  
+    \begin{tabular}{cc}
+        a) & b) \\
+        \hspace{-0.25cm}\includegraphics[width=0.375\textwidth,angle=-90]{../FIGURES/factorReXsUstarX0.1FilX0.014.eps} &       
+        \hspace{-0.6cm}\includegraphics[width=0.375\textwidth,angle=-90]{../FIGURES/factorReXsUstarX0.4FilX0.014.eps}             
+    \end{tabular}    
+    \caption{Multiplicative factor of the filtered gas pressure gradient term, $\left(\bar{\phi}_s-\frac{\beta u_t \phi_{s,max}}{\rho_s\bar{\phi}_s||\mathbf{g}||}m\right)$ in \eqref{eq:filt_momentSolid_corrected} with respect to the scaled solid volume fraction a) at $\uSlipStar=0.1$, and b) $\uSlipStar=0.4$, at $\deltas = 0.014$ for flow configurations of SG1 ($\Rep=3.12$), SG2 ($\Rep=6.3$), and SG3 ($\Rep=14.77$). See Table~\ref{tab:test_cases} for flow configurations. $\bar{m}_{s}$ is the mass fraction of the solid phase.}
+    \label{fig:compareDB_vs_DW_paramRe}
+\end{figure} 
+
+\newpage
+\begin{figure}
+    \centering
+    \psfrag{x1}[c]{$\phi^*$}
+    \psfrag{y1}[c]{$\tilde{c}_a$}
+    \psfrag{Ustar01}[][c][0.75]
+    {\hspace{1.4cm}$\Rep=6.3$, $\uSlipStar=0.1$}
+    \psfrag{Ustar02}[][c][0.75]
+    {\hspace{1.4cm}$\Rep=6.3$, $\uSlipStar=0.2$}
+    \psfrag{Ustar03}[][c][0.75]
+    {\hspace{1.4cm}$\Rep=6.3$, $\uSlipStar=0.3$}
+    \psfrag{Ustar04}[][c][0.75]
+    {\hspace{1.4cm}$\Rep=6.3$, $\uSlipStar=0.4$} 
+    \psfrag{Rep01}[][c][0.75]
+    {\hspace{2.1cm}$\Rep=3.12$, $\uSlipStar=0.1$}
+    \psfrag{Rep02}[][c][0.75]
+    {\hspace{1.9cm}$\Rep=6.3$, $\uSlipStar=0.1$}
+    \psfrag{Rep03}[][c][0.75]
+    {\hspace{2.2cm}$\Rep=14.77$, $\uSlipStar=0.1$}    
+    \begin{tabular}{cc}
+        a) & b) \\
+        \hspace{-0.25cm}\includegraphics[width=0.375\textwidth,angle=-90]{../FIGURES/constCaReX6.3UstarXsFilX0.014.eps} &
+        \hspace{-0.6cm}\includegraphics[width=0.375\textwidth,angle=-90]{../FIGURES/constCaReXsUstarX0.1FilX0.014.eps}         
+    \end{tabular}    
+    \caption{Generalized added mass coefficient, $\tilde{c}_a$ with respect to the scaled solid volume fraction a) at various scaled slip velocities $\uSlipStar=0.1, 0.2, 0.3$ and $0.4$ for the flow configuration of SG1 ($\Rep=3.12$), b) at the scaled slip velocity, $\uSlipStar=0.1$ for flow configurations of SG1 ($\Rep=3.12$), SG2 ($\Rep=6.3$), and SG3 ($\Rep=14.77$).Scaled filter size, $\deltas = 0.014$. See Table~\ref{tab:test_cases} for flow configurations.}
+    \label{fig:ca_vs_phi}
+\end{figure} 
+
+\end{document}
+
